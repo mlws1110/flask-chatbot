@@ -19,7 +19,7 @@ def get_advice():
 
         # Call the OpenAI API with the user input
         response = openai.ChatCompletion.create(
-            model="gpt-4",  # Use the appropriate model name
+            model="gpt-4o-mini",  # Use the appropriate model name
             messages=[
                 {"role": "system", "content": "You are a helpful financial advisor for children."},
                 {"role": "user", "content": user_input},

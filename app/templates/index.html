@@ -3,77 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Advisor Chatbot</title>
+    <title>MoneyGrow Explorer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Poppins:wght@400;600&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1a1a1a;
+        }
+        .chat-container {
+            height: calc(100vh - 220px);
+            overflow-y: auto;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+        }
+        .user-message {
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 18px 18px 0 18px;
+        }
+        .bot-message {
+            color: #e0e0e0;
+            border-left: 4px solid #FF5252;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 0 18px 18px 0;
+        }
+        .title {
+            font-family: 'Bangers', cursive;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl mt-10">
-        <div class="p-8">
-            <div class="uppercase tracking-wide text-sm text-indigo-500 font-semibold mb-4">
-                Financial Advisor Chatbot
-            </div>
-            <div id="chatbox" class="space-y-4 h-64 overflow-y-auto mb-4">
-                <div class="bg-gray-200 p-4 rounded-lg shadow">
-                    Hi! I am your financial advisor. How can I help you today?
-                </div>
-            </div>
-            <div class="mt-4">
-                <input id="userInput" type="text" placeholder="Your question" class="w-full p-2 border rounded-md">
-            </div>
-            <div class="mt-4">
-                <button id="sendButton" class="w-full bg-indigo-500 text-white p-2 rounded-md hover:bg-indigo-600">Send</button>
+<body class="text-white">
+    <div class="container mx-auto p-4">
+        <h1 class="title text-6xl font-bold mb-6 text-center text-green-400">MoneyGrow Explorer</h1>
+        <p class="text-center mb-8 text-xl">Your guide to growing wealth and achieving dreams!</p>
+        <div class="bg-black rounded-lg shadow-lg p-4 border-2 border-green-400">
+            <div id="chat-container" class="chat-container mb-4 p-4"></div>
+            <div class="flex">
+                <input type="text" id="user-input" class="flex-grow p-3 border-2 border-green-400 rounded-l-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="Ask about money, savings, or your dreams...">
+                <button id="send-btn" class="bg-green-400 text-black px-6 py-3 rounded-r-lg hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-400 transition duration-300 font-semibold">Send</button>
             </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('sendButton').addEventListener('click', sendMessage);
-        document.getElementById('userInput').addEventListener('keypress', function(e) {
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        function addMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `mb-4 p-3 rounded-lg ${isUser ? 'user-message ml-auto max-w-[80%]' : 'bot-message mr-auto max-w-[90%]'}`;
+            messageDiv.textContent = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return messageDiv;
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (message) {
+                addMessage(message, true);
+                userInput.value = '';
+                userInput.focus();
+
+                const botMessageDiv = addMessage('', false);
+
+                try {
+                    const response = await fetch('/get_advice', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ user_input: message }),
+                    });
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data:')) {
+                                const data = JSON.parse(line.slice(5));
+                                if (data.advice) {
+                                    botMessageDiv.textContent += data.advice;
+                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                } else if (data.error) {
+                                    botMessageDiv.textContent = 'Oops! I hit a snag. Can you try asking that again?';
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    botMessageDiv.textContent = 'Oops! I hit a snag. Can you try asking that again?';
+                }
+            }
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
-
-        function sendMessage() {
-            const userInput = document.getElementById('userInput').value;
-            if (userInput.trim() === '') return;
-
-            // Add user message to chat
-            addMessageToChatbox('You: ' + userInput, 'bg-blue-100');
-
-            // Clear input field
-            document.getElementById('userInput').value = '';
-
-            // Send request to server
-            fetch('/get_advice', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ user_input: userInput }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.advice) {
-                    addMessageToChatbox('Advisor: ' + data.advice, 'bg-gray-200');
-                } else {
-                    addMessageToChatbox('Advisor: Sorry, I encountered an error.', 'bg-red-100');
-                }
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                addMessageToChatbox('Advisor: Sorry, I encountered an error.', 'bg-red-100');
-            });
-        }
-
-        function addMessageToChatbox(message, bgColor) {
-            const chatbox = document.getElementById('chatbox');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `${bgColor} p-4 rounded-lg shadow`;
-            messageDiv.textContent = message;
-            chatbox.appendChild(messageDiv);
-            chatbox.scrollTop = chatbox.scrollHeight;
-        }
     </script>
 </body>
 </html>

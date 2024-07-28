@@ -42,7 +42,7 @@ Now, respond to the user's question in this friendly, conversational style."""},
                     {"role": "user", "content": user_input},
                 ],
                 temperature=0.7,
-                max_tokens=200,
+                max_tokens=500,
                 stream=True,
             )
 

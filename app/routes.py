@@ -1,12 +1,13 @@
-from flask import Blueprint, render_template, request, Response, stream_with_context
-from openai import OpenAI
+from flask import Blueprint, render_template, request, Response, stream_with_context, jsonify
+import openai 
 import os
 import json
 
 main = Blueprint('main', __name__)
 
 # Initialize the OpenAI client
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+
 
 @main.route('/')
 def home():
@@ -19,7 +20,7 @@ def get_advice():
 
     def generate():
         try:
-            response = client.chat.completions.create(
+            response = openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": """You are KidsFin, a friendly and knowledgeable financial advisor for children aged 8-14. Your personality is warm, patient, and encouraging. When you speak to kids about money, you do so in a natural, conversational way, as if you're chatting with a young friend.
